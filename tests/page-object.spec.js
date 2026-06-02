@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import { faker } from '@faker-js/faker';
 import { MainPage } from '../pages/main.page';
 import { RegisterPage } from '../pages/register.page';
-import { YourFeedPage } from '../pages/your-feed.page';
+import { AuthenticatedMainPage } from '../pages/authenticated-main.page';
 
 const url = 'https://realworld.qa.guru/';
 const username = faker.person.fullName();
@@ -14,10 +14,10 @@ test.skip('Пользователь может зарегистрировать�
 
   const mainPage = new MainPage({ page });
   const registerPage = new RegisterPage({ page });
-  const yourFeedPage = new YourFeedPage({ page });
+  const authenticatedMainPage = new AuthenticatedMainPage({ page });
   
   await mainPage.goToRegister();
   await registerPage.signUp({ username, email, password });
 
-  await expect(yourFeedPage.getProfileName()).toContainText(username);
+  await expect(authenticatedMainPage.getProfileName()).toContainText(username);
 });
