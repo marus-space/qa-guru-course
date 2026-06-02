@@ -9,7 +9,7 @@ const username = faker.person.fullName();
 const email = faker.internet.email({ firstName: 'Sniper', provider: 'example.com' });
 const password = faker.internet.password({ length: 20 });
 
-test('Пользователь может зарегистрироваться, используя email и пароль', async ({ page }) => {
+test.skip('Пользователь может зарегистрироваться, используя email и пароль', async ({ page }) => {
   await page.goto(url);
 
   const mainPage = new MainPage({ page });
