@@ -1,3 +1,7 @@
+export { ArticlePage } from './article.page';
 export { AuthenticatedMainPage } from './authenticated-main.page';
+export { LoginPage } from './login.page';
 export { MainPage } from './main.page';
+export { NewArticlePage } from './new-article.page';
 export { RegisterPage } from './register.page';
+export { UserProfilePage } from './user-profile.page';
