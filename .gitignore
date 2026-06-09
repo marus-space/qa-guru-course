@@ -7,6 +7,7 @@ node_modules/
 /playwright/.cache/
 /playwright/.auth/
 .playwright-browsers/
+/ignore-tests/
 
 # Environment and secrets
 .env
