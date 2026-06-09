@@ -4,63 +4,30 @@ export class AuthenticatedMainPage extends MainPage {
   constructor({ page }) {
     super({ page });
     this.profileDropdown = page.getByRole('listItem').and(page.locator('.dropdown'));
-    this.profileName = this.profileDropdown.locator('.dropdown-toggle');
     this.profileLink = this.profileDropdown.getByRole('link', { name: 'Profile' });
-    this.globalFeedButton = page.getByRole('button', { name: 'Global Feed' });
-    this.addToFavoritesButtons = page.locator('.article-preview').getByRole('button');
-    this.firstAddToFavoritesButtonCount = this.addToFavoritesButtons.first().locator('.counter');
-    this.newArticleLink = page.getByRole('link', { name: 'New Article' });
+    this.settingsLink = this.profileDropdown.getByRole('link', { name: 'Settings' });
+    this.newArticlePageLink = page.getByRole('link', { name: 'New Article' });
   }
 
   getProfileDropdown() {
     return this.profileDropdown;
   }
 
-  async getProfilePath() {
-    return await this.profileLink.getAttribute('href');
-  }
-
-  async getProfileName() {
-    return await this.profileName.textContent();
-  }
-
-  async clickProfileDropdown() {
+  async clickDropdownProfileLink() {
     await this.profileDropdown.click();
-  }
-
-  async clickProfileLink() {
     await this.profileLink.click();
   }
 
-  async openGlobalFeed() {
-    await this.globalFeedButton.click();
+  async clickDropdownSettingsLink() {
+    await this.profileDropdown.click();
+    await this.settingsLink.click();
   }
 
-  async getFirstAddToFavoritesButton() {
-    return await this.addToFavoritesButtons.first();
-  }
-
-  async getFirstAddToFavoritesButtonCount() {
-    const text = await this.firstAddToFavoritesButtonCount.textContent();
-
-    return Number(text.match(/\d+/)[0]);
-  }
-
-  async clickFirstAddToFavoritesButton() {
-    await this.addToFavoritesButtons.first().click();
-  }
-
-  async getIsFirstAddToFavoritesButtonActive() {
-    const classNames = await this.addToFavoritesButtons.first().getAttribute('class');
-
-    return classNames?.includes('active') ?? false;
-  }
-
-  async getNewArticlePath() {
-    return await this.newArticleLink.getAttribute('href');
+  async getNewArticlePagePath() {
+    return await this.newArticlePageLink.getAttribute('href');
   };
 
-  async clickNewArticleLink() {
-    await this.newArticleLink.click();
+  async clickNewArticlePageLink() {
+    await this.newArticlePageLink.click();
   }
 }

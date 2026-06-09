@@ -1,114 +1,132 @@
 import { test, expect } from '@playwright/test';
 import { App } from '../pages/app';
-import { ArticleBuilder } from '../src/helpers/builders';
-
-const username = 'Test User';
-const email = 'test_user@example.com';
-const password = 'test_password';
-
-test('1. Пользователь может перейти на страницу просмотра статьи', async ({ page }) => {
-  const app = new App({ page });
-
-  await app.mainPage.goToMainPage();
-
-  const articlePath = await app.mainPage.getFirstArticlePath();
-  const articleName = await app.mainPage.getFirstArticleName();
-
-  await app.mainPage.clickFirstArticlePreviewLink();
-
-  await expect(page).toHaveURL(app.mainPage.getBaseUrl() + articlePath);
-  await expect(await app.articlePage.getArticleHeading()).toContainText(articleName);
-});
-
-test('2. Пользователь может перейти в профиль автора статьи', async ({ page }) => {
-  const app = new App({ page });
-
-  await app.mainPage.goToMainPage();
-
-  const authorPath = await app.mainPage.getFirstArticleAuthorPath();
-  const authorName = await app.mainPage.getFirstArticleAuthorName();
-
-  await app.mainPage.clickFirstArticleAuthorLink();
-
-  await expect(page).toHaveURL(app.mainPage.getBaseUrl() + authorPath);
-  await expect(await app.userProfilePage.getUserHeading()).toContainText(authorName);
-  await expect(await app.userProfilePage.getUserImage()).toBeVisible();
-});
+import { ArticleBuilder, UserBuilder } from '../src/helpers/builders';
+import { EMAIL, PASSWORD } from '../src/constants';
+import { faker } from '@faker-js/faker';
 
 test.describe('Тесты на функциональность, доступную авторизованным пользователям', () => { 
+  test.describe.configure({ mode: 'serial' });
+  
   test.beforeEach(async ({ page }) => {
     const app = new App({ page });
 
     await app.mainPage.goToMainPage();
     await app.mainPage.goToLogin();
-    await app.loginPage.signIn({ email, password });
-
-    await expect(app.authenticatedMainPage.getProfileDropdown()).toContainText(username);
+    await app.loginPage.signIn({ email: EMAIL, password: PASSWORD });
   });
 
-  test('3. Авторизованный пользователь может добавить и удалить статью из Избранного', async ({ page }) => {
+  // FIXME: На сайте при редактировании профиля поле с паролем по умолчанию пустое и его разрешается сохранить, 
+  // но при авторизации пустой пароль запрещен
+  test('1. Авторизованный пользователь может изменить данные своего профиля', async ({ page }) => {
+    const user = new UserBuilder()
+      .withUsername()
+      .withBio()
+      .withImageUrl()
+      .build();
+
     const app = new App({ page });
-
-    await app.authenticatedMainPage.openGlobalFeed();
-
-    const initialCount = await app.authenticatedMainPage.getFirstAddToFavoritesButtonCount();
-    const isInitialActive = await app.authenticatedMainPage.getIsFirstAddToFavoritesButtonActive();
-
-    const addArticleToFavorites = async () => {
-      await app.authenticatedMainPage.clickFirstAddToFavoritesButton();
     
-      await expect(await app.authenticatedMainPage.getFirstAddToFavoritesButton()).toContainClass('active');
-      expect(await app.authenticatedMainPage.getFirstAddToFavoritesButtonCount()).toBe(initialCount + (isInitialActive ? 0 : 1));
-    };
+    try {
+      await app.authenticatedMainPage.clickDropdownSettingsLink();
+      await app.userProfileSettingsPage.updateUserProfileSettings(user);
 
-    const deleteArticleFromFavorites = async () => {
-      await app.authenticatedMainPage.clickFirstAddToFavoritesButton();
+      await expect(app.authenticatedMainPage.getProfileDropdown()).toContainText(user.username);
 
-      await expect(await app.authenticatedMainPage.getFirstAddToFavoritesButton()).not.toContainClass('active');
-      expect(await app.authenticatedMainPage.getFirstAddToFavoritesButtonCount()).toBe(initialCount - (isInitialActive ? 1 : 0));
-    };
+      await app.authenticatedMainPage.clickDropdownProfileLink();
 
-    if (isInitialActive) {
-      await deleteArticleFromFavorites();
-      await addArticleToFavorites();
-    } else {
-      await addArticleToFavorites();
-      await deleteArticleFromFavorites();
+      await expect(app.userProfilePage.getUserHeading()).toContainText(user.username);
+      await expect(app.userProfilePage.getUserBio()).toContainText(user.bio);
+      await expect(app.userProfilePage.getUserImage()).toHaveAttribute('src', user.imageUrl);
+    } finally {
+      await app.authenticatedMainPage.clickDropdownSettingsLink();
+      await app.userProfileSettingsPage.resetUserProfileSettings();
     }
   });
 
-  test('4. Авторизованный пользователь может перейти в свой профиль', async ({ page }) => {
-    const app = new App({ page });
-
-    await app.authenticatedMainPage.clickProfileDropdown();
-    await app.authenticatedMainPage.clickProfileLink();
-
-    const userPath = await app.authenticatedMainPage.getProfilePath();
-    const userName = await app.authenticatedMainPage.getProfileName();
-
-    await expect(page).toHaveURL(app.authenticatedMainPage.getBaseUrl() + userPath);
-    await expect(await app.userProfilePage.getUserHeading()).toContainText(userName);
-    await expect(await app.userProfilePage.getUserImage()).toBeVisible();
-  });
-
-  test('5. Авторизованный пользователь может создать статью', async ({ page }) => {
+  test('2. Авторизованный пользователь может создать статью', async ({ page }) => {
     const article = new ArticleBuilder().withTitle().withDescription().withContent().withTags().build();
 
     const app = new App({ page });
 
-    const newArticlePath = await app.authenticatedMainPage.getNewArticlePath();
+    const newArticlePath = await app.authenticatedMainPage.getNewArticlePagePath();
 
-    await app.authenticatedMainPage.clickNewArticleLink();
+    await app.authenticatedMainPage.clickNewArticlePageLink();
 
     await expect(page).toHaveURL(app.authenticatedMainPage.getBaseUrl() + newArticlePath);
 
     await app.newArticlePage.createNewArticle(article);
 
-    await expect(await app.articlePage.getArticleHeading()).toContainText(article.title);
-    await expect(await app.articlePage.getArticleContent()).toContainText(article.content);
+    await expect(app.articlePage.getArticleHeading()).toContainText(article.title);
+    await expect(app.articlePage.getArticleContent()).toContainText(article.content);
     
     for (const tag of article.tags.split(',')) {
-      await expect(await app.articlePage.getTagList()).toContainText(tag);
+      await expect(app.articlePage.getTagList()).toContainText(tag);
     }
+  });
+
+  test.describe('Тесты на функциональность статей', () => {
+    let initialArticle;
+
+    test.beforeEach(async ({ page }) => {
+      initialArticle = new ArticleBuilder().withTitle().withDescription().withContent().withTags().build();
+
+      const app = new App({ page });
+
+      await app.authenticatedMainPage.clickNewArticlePageLink();
+
+      await app.newArticlePage.createNewArticle(initialArticle);
+    });
+
+    // FIXME: На сайте не работает редактирование тегов
+    test('3. Авторизованный пользователь может отредактировать статью', async ({ page }) => {
+      const article = new ArticleBuilder().withTitle().withDescription().withContent().build();
+
+      const app = new App({ page });
+
+      await expect(app.articlePage.getArticleHeading()).toContainText(initialArticle.title);
+
+      await app.articlePage.clickEditArticleButton();
+
+      await app.editArticlePage.updateArticle(article);
+
+      await expect(app.articlePage.getArticleHeading()).toContainText(article.title);
+      await expect(app.articlePage.getArticleContent()).toContainText(article.content);
+    });
+
+    test('4. Авторизованный пользователь может добавить и удалить статью из Избранного', async ({ page }) => { 
+      const app = new App({ page });
+
+      await expect(app.articlePage.getArticleHeading()).toContainText(initialArticle.title);
+
+      await app.authenticatedMainPage.clickDropdownProfileLink();
+
+      await expect(app.userProfilePage.getFirstArticleHeading()).toContainText(initialArticle.title);
+      await expect(app.userProfilePage.getFirstAddToFavoritesButton()).toBeVisible();
+
+      const initialText = await app.userProfilePage.getFirstAddToFavoritesButtonText();
+      const initialCount = await app.userProfilePage.getFirstAddToFavoritesButtonCount();
+
+      await app.userProfilePage.clickFirstAddToFavoritesButton();
+    
+      await expect(app.userProfilePage.getFirstAddToFavoritesButton()).toContainClass('active');
+      await expect(app.userProfilePage.getFirstAddToFavoritesButton()).toHaveText(initialText.replace(/\d+/, initialCount + 1));
+
+      await app.userProfilePage.clickFirstAddToFavoritesButton();
+
+      await expect(app.userProfilePage.getFirstAddToFavoritesButton()).not.toContainClass('active');
+      await expect(app.userProfilePage.getFirstAddToFavoritesButton()).toHaveText(initialText.replace(/\d+/, initialCount));
+    });
+
+    test('5. Авторизованный пользователь может оставить комментарий к своей статье', async ({ page }) => {
+      const comment = faker.lorem.paragraphs(1);
+
+      const app = new App({ page });
+
+      await expect(app.articlePage.getArticleHeading()).toContainText(initialArticle.title);
+
+      await app.articlePage.postComment(comment);
+
+      await expect(app.articlePage.getLastCommentCard()).toContainText(comment);
+    });
   });
 });

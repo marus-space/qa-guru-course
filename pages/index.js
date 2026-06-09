@@ -5,3 +5,5 @@ export { MainPage } from './main.page';
 export { NewArticlePage } from './new-article.page';
 export { RegisterPage } from './register.page';
 export { UserProfilePage } from './user-profile.page';
+export { UserProfileSettingsPage } from './user-profile-settings.page';
+export { EditArticlePage } from './edit-article.page';
