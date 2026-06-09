@@ -13,6 +13,14 @@ export class UserBuilder {
     this.password = faker.internet.password({ length });
     return this;
   }
+  withImageUrl() {
+    this.imageUrl = faker.image.url();
+    return this;
+  }
+  withBio() {
+    this.bio = faker.lorem.paragraphs(2);
+    return this;
+  }
   build() {
     return { ...this };
   }
